@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8" />
+    <title>我的借阅记录</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+        }
+        table {
+            border-collapse: collapse;
+            width: 100%;
+            margin-top: 20px;
+        }
+        th, td {
+            padding: 10px;
+            border: 1px solid #ccc;
+            text-align: left;
+        }
+        th {
+            background-color: #f2f2f2;
+        }
+        .back-btn {
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+<h2>📚 我的借阅记录</h2>
+<table id="recordsTable">
+    <thead>
+    <tr>
+        <th>借阅编号</th>
+        <th>图书编码</th>
+        <th>借阅时间</th>
+        <th>归还时间</th>
+        <th>是否归还</th>
+    </tr>
+    </thead>
+    <tbody>
+    <!-- 数据行将通过 JS 动态插入 -->
+    </tbody>
+</table>
+
+<button class="back-btn" onclick="window.location.href='borrower-home.html'">返回主页</button>
+
+<script>
+    async function loadBorrowRecords() {
+        const borrowerNumber = localStorage.getItem('borrowerNumber');
+        if (!borrowerNumber) {
+            alert('未登录，无法查看记录。');
+            window.location.href = 'login.html';
+            return;
+        }
+
+        const res = await fetch('http://localhost:3000/api/socket', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                operationType: 'VIEW_BORROW_RECORDS',
+                payload: { borrowerNumber }
+            })
+        });
+
+        const result = await res.json();
+        if (!result.success) {
+            alert('获取记录失败：' + result.message);
+            return;
+        }
+
+        const tbody = document.querySelector('#recordsTable tbody');
+        tbody.innerHTML = '';
+
+        result.data.forEach(record => {
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+          <td>${record.transactionNumber}</td>
+          <td>${record.bookCode}</td>
+          <td>${record.borrowDate || '-'}</td>
+          <td>${record.dueDate || '-'}</td>
+          <td>${record.status}</td>
+        `;
+            tbody.appendChild(tr);
+        });
+    }
+
+    window.onload = loadBorrowRecords;
+</script>
+</body>
+</html>

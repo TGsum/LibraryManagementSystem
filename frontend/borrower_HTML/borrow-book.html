@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <title>借阅图书</title>
+    <style>
+        .highlight {
+            background-color: #eaffea;
+            color: #2ecc71;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+<h2>借阅图书</h2>
+
+<input type="text" id="searchInput" placeholder="搜索图书" oninput="renderTable()" />
+
+<table border="1">
+    <thead>
+    <tr>
+        <th>书名</th>
+        <th>作者</th>
+        <th>版本</th>
+        <th>语言</th>
+        <th>出版日期</th>
+        <th>库存</th>
+        <th>版本编号</th>
+        <th>操作</th>
+    </tr>
+    </thead>
+    <tbody id="bookTableBody"></tbody>
+</table>
+<button class="back-btn" onclick="window.location.href='borrower-home.html'">返回主页</button>
+<script>
+    let bookList = [];
+
+    function highlightKeyword(text, keyword) {
+        if (!keyword) return text;
+        const pattern = new RegExp(keyword, "gi");
+        return text.replace(pattern, match => `<span class="highlight">${match}</span>`);
+    }
+
+    function renderTable() {
+        const keyword = document.getElementById('searchInput').value.trim().toLowerCase();
+        const tbody = document.getElementById('bookTableBody');
+        tbody.innerHTML = '';
+
+        bookList.forEach(book => {
+            const values = [book.title, book.authors, book.language, book.bookCode];
+            const match = values.some(v => v && v.toLowerCase().includes(keyword));
+            if (!keyword || match) {
+                const row = `<tr>
+            <td>${highlightKeyword(book.title, keyword)}</td>
+            <td>${highlightKeyword(book.authors, keyword)}</td>
+            <td>${highlightKeyword(book.edition, keyword)}</td>
+            <td>${highlightKeyword(book.language, keyword)}</td>
+            <td>${book.publishDate}</td>
+            <td>${book.stockQuantity}</td>
+            <td>${highlightKeyword(book.bookCode, keyword)}</td>
+            <td><button onclick="borrow('${book.bookCode}')">借阅</button></td>
+          </tr>`;
+                tbody.innerHTML += row;
+            }
+        });
+    }
+
+    function borrow(bookCode) {
+        const borrowerNumber = localStorage.getItem("borrowerNumber");
+        if (!borrowerNumber) return alert("请先登录");
+
+        fetch("http://localhost:3000/api/socket", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                operationType: "BORROW",
+                payload: { borrowerNumber, bookCode }
+            })
+        })
+            .then(res => res.json())
+            .then(res => {
+                alert(res.message);
+                if (res.success) {
+                    // 成功后可刷新图书数据或更新库存数量
+                    location.reload();
+                }
+            });
+    }
+
+    fetch("http://localhost:3000/api/socket", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ operationType: "LIST_BOOKS", payload: {} })
+    })
+        .then(res => res.json())
+        .then(res => {
+            if (res.success) {
+                bookList = res.data;
+                renderTable();
+            } else {
+                alert("加载图书失败：" + res.message);
+            }
+        });
+</script>
+</body>
+</html>

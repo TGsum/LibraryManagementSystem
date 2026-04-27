@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <title>借阅者首页</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 50px;
+            background: #e0f7fa;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            max-width: 500px;
+            margin: auto;
+            border-radius: 8px;
+            box-shadow: 0 0 10px #ccc;
+            text-align: center;
+        }
+        button {
+            width: 100%;
+            padding: 12px;
+            margin: 12px 0;
+            font-size: 16px;
+            cursor: pointer;
+        }
+        h2 {
+            margin-bottom: 30px;
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <h2>欢迎，借阅者</h2>
+    <button onclick="viewBooks()">📚 查看图书</button>
+    <button onclick="borrowBook()">📖 借书</button>
+    <button onclick="returnBook()">📤 还书</button>
+    <button onclick="viewRecords()">📄 我的借阅记录</button>
+    <button onclick="logout()">🚪 退出登录</button>
+</div>
+
+<script>
+    function viewBooks() {
+        window.location.href = "view-books.html";
+    }
+
+    function borrowBook() {
+        window.location.href = "borrow-book.html";
+    }
+
+    function returnBook() {
+        window.location.href = "return-book.html";
+    }
+
+    function viewRecords() {
+        window.location.href = "borrow-records.html";
+    }
+
+    function logout() {
+        localStorage.clear();
+        alert("你已经退出登录")
+        window.location.href = "login.html";
+    }
+</script>
+</body>
+</html>

@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <title>图书管理</title>
+    <style>
+        body {
+            font-family: sans-serif;
+            padding: 20px;
+        }
+
+        h2 {
+            text-align: center;
+        }
+
+        .tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .tabs button {
+            padding: 10px;
+            cursor: pointer;
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+
+        th, td {
+            border: 1px solid #ccc;
+            padding: 6px;
+            text-align: center;
+        }
+
+        input, select {
+            margin: 5px 0;
+            width: 100%;
+            padding: 6px;
+        }
+
+        button {
+            padding: 8px 16px;
+            margin-top: 10px;
+        }
+
+        .message {
+            color: green;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+
+<h2>图书管理</h2>
+
+<div class="tabs">
+    <button onclick="switchTab('add')">添加图书</button>
+    <button onclick="switchTab('delete')">删除图书版本</button>
+    <button onclick="switchTab('update')">更新图书版本</button>
+</div>
+
+<div id="add" class="tab-content active">
+    <h3>添加图书及版本</h3>
+    <div>
+        <h4>图书信息</h4>
+        <input id="add_isbn" placeholder="ISBN">
+        <input id="add_title" placeholder="书名">
+    </div>
+    <div>
+        <h4>版本信息</h4>
+        <input id="add_bookCode" placeholder="图书编码">
+        <input id="add_authors" placeholder="作者">
+        <input id="add_edition" placeholder="版本">
+        <input id="add_publishDate" placeholder="出版日期 yyyy-MM-dd">
+        <input id="add_language" placeholder="语言">
+        <input id="add_pageCount" type="number" placeholder="页数">
+        <input id="add_price" placeholder="价格">
+        <input id="add_stock" type="number" placeholder="库存数量">
+        <button onclick="addBook()">提交添加</button>
+    </div>
+</div>
+
+<div id="delete" class="tab-content">
+    <h3>删除图书版本</h3>
+    <input id="delete_bookCode" placeholder="输入图书编码或点击下方图书选定">
+    <button onclick="deleteBookVersion()">删除</button>
+</div>
+
+<div id="update" class="tab-content">
+    <h3>更新图书版本</h3>
+    <input id="update_bookCode" placeholder="图书编码">
+    <input id="update_authors" placeholder="作者">
+    <input id="update_edition" placeholder="版本">
+    <input id="update_publishDate" placeholder="出版日期 yyyy-MM-dd">
+    <input id="update_language" placeholder="语言">
+    <input id="update_pageCount" type="number" placeholder="页数">
+    <input id="update_price" placeholder="价格">
+    <input id="update_stock" type="number" placeholder="库存数量">
+    <button onclick="updateBookVersion()">提交更新</button>
+</div>
+
+<div class="message" id="msgBox"></div>
+
+<h3>图书版本列表（点击行填充删除/更新）</h3>
+<table id="bookTable">
+    <thead>
+    <tr>
+        <th>图书编码</th><th>书名</th><th>ISBN</th><th>作者</th>
+        <th>版本</th><th>出版日期</th><th>语言</th><th>页数</th>
+        <th>价格</th><th>库存</th>
+    </tr>
+    </thead>
+    <tbody></tbody>
+</table>
+<button class="back-btn" onclick="window.location.href='employee_main.html'">返回主页</button>
+<script>
+    function switchTab(id) {
+        document.querySelectorAll(".tab-content").forEach(t => t.classList.remove("active"));
+        document.getElementById(id).classList.add("active");
+    }
+
+    async function fetchBooks() {
+        const res = await fetch("http://localhost:3000/api/socket", {
+            method: "POST",
+            headers: {"Content-Type": "application/json"},
+            body: JSON.stringify({
+                operationType: "LIST_BOOKS",
+                payload: null
+            })
+        });
+        const data = await res.json();
+        if (data.success) renderBookTable(data.data);
+        else document.getElementById("msgBox").textContent = data.message;
+    }
+
+    function renderBookTable(books) {
+        const tbody = document.querySelector("#bookTable tbody");
+        tbody.innerHTML = "";
+        books.forEach(b => {
+            const tr = document.createElement("tr");
+            tr.innerHTML = `
+        <td>${b.bookCode}</td><td>${b.title}</td><td>${b.isbn}</td><td>${b.authors}</td>
+        <td>${b.edition}</td><td>${b.publishDate}</td><td>${b.language}</td><td>${b.pageCount}</td>
+        <td>${b.price}</td><td>${b.stockQuantity}</td>
+      `;
+            tr.onclick = () => {
+                document.getElementById("delete_bookCode").value = b.bookCode;
+                document.getElementById("update_bookCode").value = b.bookCode;
+                document.getElementById("update_authors").value = b.authors;
+                document.getElementById("update_edition").value = b.edition;
+                document.getElementById("update_publishDate").value = b.publishDate;
+                document.getElementById("update_language").value = b.language;
+                document.getElementById("update_pageCount").value = b.pageCount;
+                document.getElementById("update_price").value = b.price;
+                document.getElementById("update_stock").value = b.stockQuantity;
+            };
+            tbody.appendChild(tr);
+        });
+    }
+
+    async function addBook() {
+        const book = {
+            isbn: document.getElementById("add_isbn").value,
+            title: document.getElementById("add_title").value
+        };
+        const version = {
+            bookCode: document.getElementById("add_bookCode").value,
+            authors: document.getElementById("add_authors").value,
+            edition: document.getElementById("add_edition").value,
+            publishDate: document.getElementById("add_publishDate").value,
+            language: document.getElementById("add_language").value,
+            pageCount: Number(document.getElementById("add_pageCount").value),
+            price: document.getElementById("add_price").value,
+            stockQuantity: Number(document.getElementById("add_stock").value)
+        };
+
+        const res = await fetch("http://localhost:3000/api/socket", {
+            method: "POST",
+            headers: {"Content-Type": "application/json"},
+            body: JSON.stringify({
+                operationType: "ADD_BOOK",
+                payload: [book, version]
+            })
+        });
+        const data = await res.json();
+        document.getElementById("msgBox").textContent = data.message;
+        if (data.success) fetchBooks();
+    }
+
+    async function deleteBookVersion() {
+        const bookCode = document.getElementById("delete_bookCode").value;
+        const res = await fetch("http://localhost:3000/api/socket", {
+            method: "POST",
+            headers: {"Content-Type": "application/json"},
+            body: JSON.stringify({
+                operationType: "DELETE_BOOK_VERSION",
+                payload: bookCode
+            })
+        });
+        const data = await res.json();
+        document.getElementById("msgBox").textContent = data.message;
+        if (data.success) fetchBooks();
+    }
+
+    async function updateBookVersion() {
+        const v = {
+            bookCode: document.getElementById("update_bookCode").value,
+            authors: document.getElementById("update_authors").value,
+            edition: document.getElementById("update_edition").value,
+            publishDate: document.getElementById("update_publishDate").value,
+            language: document.getElementById("update_language").value,
+            pageCount: Number(document.getElementById("update_pageCount").value),
+            price: document.getElementById("update_price").value,
+            stockQuantity: Number(document.getElementById("update_stock").value)
+        };
+        const res = await fetch("http://localhost:3000/api/socket", {
+            method: "POST",
+            headers: {"Content-Type": "application/json"},
+            body: JSON.stringify({
+                operationType: "UPDATE_BOOK_VERSION",
+                payload: v
+            })
+        });
+        const data = await res.json();
+        document.getElementById("msgBox").textContent = data.message;
+        if (data.success) fetchBooks();
+    }
+
+    fetchBooks();
+</script>
+</body>
+</html>

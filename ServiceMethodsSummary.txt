@@ -1,0 +1,39 @@
+【RegistrationloginoutServices】
+- boolean userRegistration(borrower borrower)
+  → 用户注册，校验 borrower 编号、姓名、性别、年龄、注册日期，唯一性校验后插入
+
+【PersonnelManagementServices】
+- boolean addStaff(staff staff)
+  → 添加新员工，校验 staff_number 唯一性后插入
+
+- boolean logicResignStaff(String staffNumber)
+  → 设置员工状态为“离职”，带事务和行锁
+
+- boolean updateStaff(staff updatedStaff)
+  → 修改员工信息，使用 version 乐观锁控制
+
+- List<staff> listAllStaff()
+  → 查询所有员工信息
+
+- boolean setBorrowerStatus(String borrowerNumber, String status)
+  → 设置借阅者账户状态为“正常”或“已注销”
+
+【BorrowingReturningService】
+- boolean borrowBook(String borrowerNumber, String bookCode)
+  → 借书：校验借阅者和库存，插入借阅记录，减库存（事务+行锁）
+
+- boolean returnBook(BigInteger transactionNumber)
+  → 还书：更新借阅记录为“已归还”，加库存（事务+行锁）
+
+【BookManagementService】
+- List<bookVersion> getAllBooksWithVersions()
+  → 查询所有图书及其版本信息
+
+- boolean addBookWithVersion(book book, bookVersion version)
+  → 添加图书和版本信息，唯一性校验 ISBN 和 book_code，带事务控制
+
+- boolean deleteBookVersion(String bookCode)
+  → 删除图书版本，需确保未被借出
+
+- boolean updateBookVersion(bookVersion version)
+  → 修改图书版本（如库存、价格、语言）

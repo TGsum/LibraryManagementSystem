@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <title>借阅者登录</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 50px;
+            background: #f2f2f2;
+        }
+        .login-container {
+            background: white;
+            padding: 20px 30px;
+            max-width: 400px;
+            margin: auto;
+            border-radius: 8px;
+            box-shadow: 0 0 10px #ccc;
+        }
+        input, button {
+            width: 100%;
+            padding: 10px;
+            margin-top: 12px;
+            font-size: 16px;
+        }
+        .register-link {
+            margin-top: 10px;
+            text-align: center;
+        }
+        .register-link a {
+            color: blue;
+            text-decoration: underline;
+            cursor: pointer;
+        }
+        .message {
+            margin-top: 15px;
+            color: red;
+        }
+    </style>
+</head>
+<body>
+
+<div class="login-container">
+    <h2>借阅者登录</h2>
+    <input type="text" id="username" placeholder="学号/借阅账号">
+    <input type="password" id="password" placeholder="密码">
+    <button onclick="login()">登录</button>
+    <div class="register-link">
+        没有账号？<a href="register.html">立即注册</a>
+    </div>
+    <div class="message" id="message"></div>
+</div>
+
+<script>
+    function login() {
+        const username = document.getElementById("username").value.trim();
+        const password = document.getElementById("password").value.trim();
+        const messageDiv = document.getElementById("message");
+
+        if (!username || !password) {
+            messageDiv.textContent = "请输入账号和密码";
+            return;
+        }
+
+        fetch("http://localhost:3000/api/socket", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+                operationType: "BORROWER_LOGIN",
+                payload: [username, password]
+            })
+        })
+            .then(res => res.json())
+            .then(res => {
+                if (res.success) {
+                    messageDiv.style.color = "green";
+                    messageDiv.textContent = "登录成功，欢迎 " + res.data.name;
+                    localStorage.setItem("borrowerNumber", res.data.borrowerNumber)
+                    setTimeout(() => {
+                        window.location.href = "borrower-home.html";
+                    }, 1000);
+                } else {
+                    messageDiv.style.color = "red";
+                    messageDiv.textContent = res.message || "登录失败";
+                }
+            })
+            .catch(err => {
+                messageDiv.textContent = "请求失败：" + err.message;
+            });
+    }
+</script>
+
+</body>
+</html>

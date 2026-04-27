@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8" />
+    <title>归还图书</title>
+    <style>
+        body {
+            font-family: Arial;
+            padding: 20px;
+            background-color: #f0f0f0;
+        }
+        h2 {
+            text-align: center;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+        }
+        th, td {
+            border: 1px solid #ccc;
+            padding: 10px;
+            text-align: center;
+        }
+        th {
+            background-color: #eee;
+        }
+        input {
+            padding: 8px;
+            margin: 5px;
+        }
+        button {
+            padding: 8px 12px;
+            margin: 5px;
+        }
+        .message {
+            margin-top: 10px;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+
+<h2>归还图书</h2>
+
+<div>
+    <label for="borrowerNumber">借阅者编号：</label>
+    <input type="text" id="borrowerNumber" placeholder="输入借阅者编号">
+    <button onclick="loadRecords()">查询借阅记录</button>
+</div>
+
+<div class="message" id="message"></div>
+
+<table id="recordTable">
+    <thead>
+    <tr>
+        <th>借阅编号</th>
+        <th>图书编码</th>
+        <th>借阅时间</th>
+        <th>归还时间</th>
+        <th>是否归还</th>
+        <th>操作</th>
+    </tr>
+    </thead>
+    <tbody>
+    <!-- 借阅记录填充在这里 -->
+    </tbody>
+</table>
+<button class="back-btn" onclick="window.location.href='employee_main.html'">返回主页</button>
+<script>
+    async function loadRecords() {
+        const borrowerNumber = document.getElementById("borrowerNumber").value.trim();
+        const msgBox = document.getElementById("message");
+        const tbody = document.querySelector("#recordTable tbody");
+        tbody.innerHTML = "";
+        msgBox.textContent = "";
+
+        if (!borrowerNumber) {
+            msgBox.style.color = "red";
+            msgBox.textContent = "请输入借阅者编号";
+            return;
+        }
+
+        const res = await fetch("http://localhost:3000/api/socket", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                operationType: "VIEW_BORROW_RECORDS",
+                payload: { borrowerNumber }
+            })
+        });
+
+        const data = await res.json();
+
+        if (!data.success) {
+            msgBox.style.color = "red";
+            msgBox.textContent = data.message;
+            return;
+        }
+
+        if (data.data.length === 0) {
+            msgBox.style.color = "gray";
+            msgBox.textContent = "暂无借阅记录";
+            return;
+        }
+
+        data.data.forEach(record => {
+            const tr = document.createElement("tr");
+            tr.innerHTML = `
+          <td>${record.transactionNumber}</td>
+          <td>${record.bookCode}</td>
+          <td>${record.borrowDate}</td>
+          <td>${record.borrowDate || "-"}</td>
+         <td>${record.status}</td>
+          <td>${record.returned ? "已归还" : `<button onclick="returnBook('${record.transactionNumber}')">归还</button>`}</td>
+        `;
+            tbody.appendChild(tr);
+        });
+    }
+
+    async function returnBook(transactionNumber) {
+        const msgBox = document.getElementById("message");
+
+        const res = await fetch("http://localhost:3000/api/socket", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                operationType: "RETURN",
+                payload: { transactionNumber }
+            })
+        });
+
+        const data = await res.json();
+
+        msgBox.style.color = data.success ? "green" : "red";
+        msgBox.textContent = data.message;
+
+        if (data.success) loadRecords();
+    }
+</script>
+
+</body>
+</html>

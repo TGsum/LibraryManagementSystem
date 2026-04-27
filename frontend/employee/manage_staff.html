@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <title>员工管理</title>
+    <style>
+        body {
+            font-family: sans-serif;
+            padding: 20px;
+        }
+
+        h2 {
+            text-align: center;
+        }
+
+        .tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .tabs button {
+            padding: 10px;
+            cursor: pointer;
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+
+        th, td {
+            border: 1px solid #ccc;
+            padding: 6px;
+            text-align: center;
+        }
+
+        input, select {
+            margin: 5px 0;
+            width: 100%;
+            padding: 6px;
+        }
+
+        button {
+            padding: 8px 16px;
+            margin-top: 10px;
+        }
+
+        .message {
+            color: green;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+
+<h2>员工管理</h2>
+
+<div class="tabs">
+    <button onclick="switchTab('add')">添加员工</button>
+    <button onclick="switchTab('update')">修改员工</button>
+    <button onclick="switchTab('resign')">员工离职</button>
+</div>
+
+<div id="add" class="tab-content active">
+    <h3>添加员工</h3>
+    <input id="add_number" placeholder="员工编号">
+    <input id="add_name" placeholder="姓名">
+    <input id="add_gender" placeholder="性别">
+    <input id="add_age" type="number" placeholder="年龄">
+    <select id="add_position">
+        <option value="普通">普通</option>
+        <option value="管理员">管理员</option>
+    </select>
+    <input id="add_salary" placeholder="工资">
+    <input id="add_password" placeholder="密码">
+    <button onclick="addStaff()">提交添加</button>
+</div>
+
+<div id="update" class="tab-content">
+    <h3>修改员工信息</h3>
+    <input id="update_number" placeholder="员工编号">
+    <input id="update_name" placeholder="姓名">
+    <input id="update_gender" placeholder="性别">
+    <input id="update_age" type="number" placeholder="年龄">
+    <select id="update_position">
+        <option value="普通">普通</option>
+        <option value="管理员">管理员</option>
+    </select>
+    <input id="update_salary" placeholder="工资">
+    <select id="update_status">
+        <option value="工作">工作</option>
+        <option value="离职">离职</option>
+    </select>
+    <input id="update_password" placeholder="密码">
+    <button onclick="updateStaff()">提交修改</button>
+</div>
+
+<div id="resign" class="tab-content">
+    <h3>员工离职</h3>
+    <input id="resign_number" placeholder="员工编号（点击表格可填充）">
+    <button onclick="resignStaff()">确认离职</button>
+</div>
+
+<div class="message" id="msgBox"></div>
+
+<h3>员工列表（点击填充信息）</h3>
+<table id="staffTable">
+    <thead>
+    <tr>
+        <th>编号</th><th>姓名</th><th>性别</th><th>年龄</th>
+        <th>职位</th><th>工资</th><th>状态</th><th>入职日期</th>
+    </tr>
+    </thead>
+    <tbody></tbody>
+</table>
+
+<script>
+    function switchTab(id) {
+        document.querySelectorAll(".tab-content").forEach(t => t.classList.remove("active"));
+        document.getElementById(id).classList.add("active");
+    }
+
+    async function fetchStaff() {
+        const res = await fetch("http://localhost:3000/api/socket", {
+            method: "POST",
+            headers: {"Content-Type": "application/json"},
+            body: JSON.stringify({
+                operationType: "LIST_STAFF",
+                payload: null
+            })
+        });
+        const data = await res.json();
+        if (data.success) renderStaffTable(data.data);
+        else document.getElementById("msgBox").textContent = data.message;
+    }
+
+    function renderStaffTable(staffList) {
+        const tbody = document.querySelector("#staffTable tbody");
+        tbody.innerHTML = "";
+        staffList.forEach(s => {
+            const tr = document.createElement("tr");
+            tr.innerHTML = `
+        <td>${s.staffNumber}</td><td>${s.name}</td><td>${s.gender}</td>
+        <td>${s.age}</td><td>${s.position}</td><td>${s.salary}</td>
+        <td>${s.status}</td><td>${s.joinDate}</td>
+      `;
+            tr.onclick = () => {
+                document.getElementById("update_number").value = s.staffNumber;
+                document.getElementById("update_name").value = s.name;
+                document.getElementById("update_gender").value = s.gender;
+                document.getElementById("update_age").value = s.age;
+                document.getElementById("update_position").value = s.position;
+                document.getElementById("update_salary").value = s.salary;
+                document.getElementById("update_status").value = s.status;
+                document.getElementById("resign_number").value = s.staffNumber;
+            };
+            tbody.appendChild(tr);
+        });
+    }
+
+    async function addStaff() {
+        const staff = {
+            staffNumber: document.getElementById("add_number").value,
+            name: document.getElementById("add_name").value,
+            gender: document.getElementById("add_gender").value,
+            age: Number(document.getElementById("add_age").value),
+            joinDate: new Date().toISOString().split("T")[0],
+            position: document.getElementById("add_position").value,
+            salary: document.getElementById("add_salary").value,
+            status: "工作",
+            password: document.getElementById("add_password").value
+        };
+
+        const res = await fetch("http://localhost:3000/api/socket", {
+            method: "POST",
+            headers: {"Content-Type": "application/json"},
+            body: JSON.stringify({
+                operationType: "ADD_STAFF",
+                payload: staff
+            })
+        });
+        const data = await res.json();
+        document.getElementById("msgBox").textContent = data.message;
+        if (data.success) fetchStaff();
+    }
+
+    async function updateStaff() {
+        const staff = {
+            staffNumber: document.getElementById("update_number").value,
+            name: document.getElementById("update_name").value,
+            gender: document.getElementById("update_gender").value,
+            age: Number(document.getElementById("update_age").value),
+            position: document.getElementById("update_position").value,
+            salary: document.getElementById("update_salary").value,
+            status: document.getElementById("update_status").value,
+            password: document.getElementById("update_password").value
+        };
+
+        const res = await fetch("http://localhost:3000/api/socket", {
+            method: "POST",
+            headers: {"Content-Type": "application/json"},
+            body: JSON.stringify({
+                operationType: "UPDATE_STAFF",
+                payload: staff
+            })
+        });
+        const data = await res.json();
+        document.getElementById("msgBox").textContent = data.message;
+        if (data.success) fetchStaff();
+    }
+
+    async function resignStaff() {
+        const number = document.getElementById("resign_number").value;
+        const res = await fetch("http://localhost:3000/api/socket", {
+            method: "POST",
+            headers: {"Content-Type": "application/json"},
+            body: JSON.stringify({
+                operationType: "RESIGN_STAFF",
+                payload: number
+            })
+        });
+        const data = await res.json();
+        document.getElementById("msgBox").textContent = data.message;
+        if (data.success) fetchStaff();
+    }
+
+    fetchStaff();
+</script>
+</body>
+</html>

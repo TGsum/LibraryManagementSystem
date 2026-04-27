@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <title>员工借书</title>
+    <style>
+        body { font-family: Arial; padding: 20px; text-align: center; }
+        input, button { margin: 5px; padding: 5px; }
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+        th, td { border: 1px solid #ccc; padding: 8px; }
+        tr.highlight { background-color: #e6ffe6; }
+    </style>
+</head>
+<body>
+
+<h2>为借阅者借书</h2>
+
+<input type="text" id="searchInput" placeholder="输入书名/作者/编码搜索">
+<input type="text" id="borrowerNumber" placeholder="借阅者编号">
+<button onclick="loadBooks()">刷新图书</button>
+
+<div id="message" style="margin-top: 10px;"></div>
+
+<table id="bookTable">
+    <thead>
+    <tr>
+        <th>书名</th><th>作者</th><th>版本</th><th>编码</th>
+        <th>出版日期</th><th>语言</th><th>库存</th><th>操作</th>
+    </tr>
+    </thead>
+    <tbody></tbody>
+</table>
+<button class="back-btn" onclick="window.location.href='employee_main.html'">返回主页</button>
+<script>
+    let allBooks = [];
+
+    async function loadBooks() {
+        const res = await fetch("http://localhost:3000/api/socket", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                operationType: "LIST_BOOKS",
+                payload: null
+            })
+        });
+
+        const data = await res.json();
+        if (data.success) {
+            allBooks = data.data;
+            renderBooks();
+        } else {
+            document.getElementById("message").textContent = data.message;
+        }
+    }
+
+    function renderBooks() {
+        const keyword = document.getElementById("searchInput").value.trim().toLowerCase();
+        const tbody = document.querySelector("#bookTable tbody");
+        tbody.innerHTML = "";
+
+        allBooks.forEach(book => {
+            const combined = `${book.title} ${book.authors} ${book.bookCode}`.toLowerCase();
+            if (!combined.includes(keyword)) return;
+
+            const tr = document.createElement("tr");
+
+            tr.innerHTML = `
+        <td>${book.title}</td>
+        <td>${book.authors}</td>
+        <td>${book.edition}</td>
+        <td>${book.bookCode}</td>
+        <td>${book.publishDate}</td>
+        <td>${book.language}</td>
+        <td>${book.stockQuantity}</td>
+        <td><button onclick="borrowBook('${book.bookCode}')">借阅</button></td>
+      `;
+
+            tbody.appendChild(tr);
+        });
+    }
+
+    async function borrowBook(bookCode) {
+        const borrowerNumber = document.getElementById("borrowerNumber").value.trim();
+        const msgBox = document.getElementById("message");
+
+        if (!borrowerNumber) {
+            msgBox.style.color = "red";
+            msgBox.textContent = "请填写借阅者编号";
+            return;
+        }
+
+        const payload = {
+            borrowerNumber: borrowerNumber,
+            bookCode: bookCode
+        };
+
+        const res = await fetch("http://localhost:3000/api/socket", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                operationType: "BORROW",
+                payload: payload
+            })
+        });
+
+        const data = await res.json();
+        msgBox.style.color = data.success ? "green" : "red";
+        msgBox.textContent = data.message;
+
+        if (data.success) loadBooks();
+    }
+
+
+    document.getElementById("searchInput").addEventListener("input", renderBooks);
+    window.onload = loadBooks;
+</script>
+
+</body>
+</html>

@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <title>查看图书</title>
+    <style>
+        .highlight {
+            background-color: #eaffea;
+            color: #2ecc71;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+<h2>图书列表</h2>
+
+<input type="text" id="searchInput" placeholder="搜索图书（书名/作者/语言/版本编号）" oninput="renderTable()" />
+
+<table border="1">
+    <thead>
+    <tr>
+        <th>书名</th>
+        <th>作者</th>
+        <th>版本</th>
+        <th>语言</th>
+        <th>出版日期</th>
+        <th>库存</th>
+        <th>版本编号</th>
+    </tr>
+    </thead>
+    <tbody id="bookTableBody"></tbody>
+</table>
+<button class="back-btn" onclick="window.location.href='borrower-home.html'">返回主页</button>
+<script>
+    let bookList = [];
+
+    function highlightKeyword(text, keyword) {
+        if (!keyword) return text;
+        const pattern = new RegExp(keyword, "gi");
+        return text.replace(pattern, match => `<span class="highlight">${match}</span>`);
+    }
+
+    function renderTable() {
+        const keyword = document.getElementById('searchInput').value.trim().toLowerCase();
+        const tbody = document.getElementById('bookTableBody');
+        tbody.innerHTML = '';
+
+        bookList.forEach(book => {
+            const values = [book.title, book.authors, book.language, book.bookCode];
+            const match = values.some(v => v && v.toLowerCase().includes(keyword));
+            if (!keyword || match) {
+                const row = `<tr>
+            <td>${highlightKeyword(book.title, keyword)}</td>
+            <td>${highlightKeyword(book.authors, keyword)}</td>
+            <td>${highlightKeyword(book.edition, keyword)}</td>
+            <td>${highlightKeyword(book.language, keyword)}</td>
+            <td>${book.publishDate}</td>
+            <td>${book.stockQuantity}</td>
+            <td>${highlightKeyword(book.bookCode, keyword)}</td>
+          </tr>`;
+                tbody.innerHTML += row;
+            }
+        });
+    }
+
+    // 页面加载时获取图书数据
+    fetch("http://localhost:3000/api/socket", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ operationType: "LIST_BOOKS", payload: {} })
+    })
+        .then(res => res.json())
+        .then(res => {
+            if (res.success) {
+                bookList = res.data;
+                renderTable();
+            } else {
+                alert("获取图书失败：" + res.message);
+            }
+        });
+</script>
+</body>
+</html>
